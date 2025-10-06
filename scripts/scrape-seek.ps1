@@ -195,49 +195,18 @@ function Get-SeekSearchPage {
     facets                = "salaryMin,workArrangement,workType"
     sortmode              = "ListedDate"
   }
-  $uri = "$seekSearchBase?$(New-QueryString -Params $params)"
+  $uri = "$($seekSearchBase)?$(New-QueryString -Params $params)"
   Invoke-WebJsonWithRetry -Uri $uri -Method GET -Headers $commonHeaders
 }
 
 function Get-SeekJobDetailsContent {
   param([Parameter(Mandatory=$true)][string]$JobId)
 
-  # Minimal GraphQL query requesting job content only (keeps payload small)
-  $gqlQuery = @'
-query jobDetails($jobId: ID!, $jobDetailsViewedCorrelationId: String!, $sessionId: String!, $zone: Zone!, $locale: Locale!, $languageCode: LanguageCodeIso!, $countryCode: CountryCodeIso2!, $timezone: Timezone!, $visitorId: UUID!, $enableApplicantCount: Boolean!, $enableWorkArrangements: Boolean!) {
-  jobDetails(
-    id: $jobId
-    tracking: {channel: "WEB", jobDetailsViewedCorrelationId: $jobDetailsViewedCorrelationId, sessionId: $sessionId}
-  ) {
-    job {
-      id
-      content(platform: WEB)
-    }
-  }
-}
-'@
+  $gqlQuery = "{`"operationName`":`"jobDetails`",`"variables`":{`"jobId`":`"$($JobId)`",`"jobDetailsViewedCorrelationId`":`"$((New-Guid).Guid)`",`"sessionId`":`"$((New-Guid).Guid)`",`"zone`":`"anz-1`",`"locale`":`"en-AU`",`"languageCode`":`"en`",`"countryCode`":`"AU`",`"timezone`":`"Europe/Berlin`",`"visitorId`":`"$((New-Guid).Guid)`",`"enableApplicantCount`":false,`"enableWorkArrangements`":true},`"query`":`"query jobDetails(`$jobId: ID!, `$jobDetailsViewedCorrelationId: String!, `$sessionId: String!, `$zone: Zone!, `$locale: Locale!, `$languageCode: LanguageCodeIso!, `$countryCode: CountryCodeIso2!, `$timezone: Timezone!, `$visitorId: UUID!, `$enableApplicantCount: Boolean!, `$enableWorkArrangements: Boolean!) {\n  jobDetails(\n    id: `$jobId\n    tracking: {channel: \`"WEB\`", jobDetailsViewedCorrelationId: `$jobDetailsViewedCorrelationId, sessionId: `$sessionId}\n  ) {\n    ...job\n    insights @include(if: `$enableApplicantCount) {\n      ... on ApplicantCount {\n        countLabel(locale: `$locale)\n        volumeLabel(locale: `$locale)\n        count\n        __typename\n      }\n      __typename\n    }\n    learningInsights(platform: WEB, zone: `$zone, locale: `$locale) {\n      analytics\n      content\n      __typename\n    }\n    gfjInfo {\n      location {\n        countryCode\n        country(locale: `$locale)\n        suburb(locale: `$locale)\n        region(locale: `$locale)\n        state(locale: `$locale)\n        postcode\n        __typename\n      }\n      workTypes {\n        label\n        __typename\n      }\n      company {\n        url(locale: `$locale, zone: `$zone)\n        __typename\n      }\n      __typename\n    }\n    workArrangements(visitorId: `$visitorId, channel: \`"JDV\`", platform: WEB) @include(if: `$enableWorkArrangements) {\n      arrangements {\n        type\n        label(locale: `$locale)\n        __typename\n      }\n      label(locale: `$locale)\n      __typename\n    }\n    seoInfo {\n      normalisedRoleTitle\n      workType\n      classification\n      subClassification\n      where(zone: `$zone)\n      broaderLocationName(locale: `$locale)\n      normalisedOrganisationName\n      __typename\n    }\n    __typename\n  }\n}\n\nfragment job on JobDetails {\n  job {\n    sourceZone\n    tracking {\n      adProductType\n      classificationInfo {\n        classificationId\n        classification\n        subClassificationId\n        subClassification\n        __typename\n      }\n      hasRoleRequirements\n      isPrivateAdvertiser\n      locationInfo {\n        area\n        location\n        locationIds\n        __typename\n      }\n      workTypeIds\n      postedTime\n      __typename\n    }\n    id\n    title\n    phoneNumber\n    isExpired\n    expiresAt {\n      dateTimeUtc\n      __typename\n    }\n    isLinkOut\n    contactMatches {\n      type\n      value\n      __typename\n    }\n    isVerified\n    abstract\n    content(platform: WEB)\n    status\n    listedAt {\n      label(context: JOB_POSTED, length: SHORT, timezone: `$timezone, locale: `$locale)\n      dateTimeUtc\n      __typename\n    }\n    salary {\n      currencyLabel(zone: `$zone)\n      label\n      __typename\n    }\n    shareLink(platform: WEB, zone: `$zone, locale: `$locale)\n    workTypes {\n      label(locale: `$locale)\n      __typename\n    }\n    advertiser {\n      id\n      name(locale: `$locale)\n      isVerified\n      registrationDate {\n        dateTimeUtc\n        __typename\n      }\n      __typename\n    }\n    location {\n      label(locale: `$locale, type: LONG)\n      __typename\n    }\n    classifications {\n      label(languageCode: `$languageCode)\n      __typename\n    }\n    products {\n      branding {\n        id\n        cover {\n          url\n          __typename\n        }\n        thumbnailCover: cover(isThumbnail: true) {\n          url\n          __typename\n        }\n        logo {\n          url\n          __typename\n        }\n        __typename\n      }\n      bullets\n      questionnaire {\n        questions\n        __typename\n      }\n      video {\n        url\n        position\n        __typename\n      }\n      displayTags {\n        label(locale: `$locale)\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n  companyProfile(zone: `$zone) {\n    id\n    name\n    companyNameSlug\n    shouldDisplayReviews\n    branding {\n      logo\n      __typename\n    }\n    overview {\n      description {\n        paragraphs\n        __typename\n      }\n      industry\n      size {\n        description\n        __typename\n      }\n      website {\n        url\n        __typename\n      }\n      __typename\n    }\n    reviewsSummary {\n      overallRating {\n        numberOfReviews {\n          value\n          __typename\n        }\n        value\n        __typename\n      }\n      __typename\n    }\n    perksAndBenefits {\n      title\n      __typename\n    }\n    __typename\n  }\n  companySearchUrl(zone: `$zone, languageCode: `$languageCode)\n  companyTags {\n    key(languageCode: `$languageCode)\n    value\n    __typename\n  }\n  restrictedApplication(countryCode: `$countryCode) {\n    label(locale: `$locale)\n    __typename\n  }\n  sourcr {\n    image\n    imageMobile\n    link\n    __typename\n  }\n  __typename\n}`"}"
 
-  $variables = @{
-    jobId                           = $JobId
-    jobDetailsViewedCorrelationId   = [guid]::NewGuid().Guid
-    sessionId                       = [guid]::NewGuid().Guid
-    zone                            = $SeekZone
-    locale                          = $SeekLocale
-    languageCode                    = "en"
-    countryCode                     = $SeekCountry
-    timezone                        = $SeekTimezone
-    visitorId                       = [guid]::NewGuid().Guid
-    enableApplicantCount            = $false
-    enableWorkArrangements          = $true
-  }
 
-  $body = @{
-    operationName = "jobDetails"
-    variables     = $variables
-    query         = $gqlQuery
-  } | ConvertTo-Json -Depth 100
 
-  $resp = Invoke-WebJsonWithRetry -Uri $seekGraphqlUrl -Method POST -Headers $graphqlHeaders -Body $body
+  $resp = Invoke-WebJsonWithRetry -Uri $seekGraphqlUrl -Method POST -Headers $graphqlHeaders -Body $gqlQuery
   return $resp.data.jobDetails.job.content
 }
 
