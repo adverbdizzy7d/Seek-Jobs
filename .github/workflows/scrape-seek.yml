@@ -1,0 +1,47 @@
+name: Scrape Seek Jobs
+
+on:
+  schedule:
+    # run hourly (UTC); adjust as you like
+    - cron: "0 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: scrape-seek
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Run PowerShell scraper
+        shell: pwsh
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          if (-not (Test-Path "./scripts/scrape-seek.ps1")) { throw "scripts/scrape-seek.ps1 not found" }
+          ./scripts/scrape-seek.ps1 -OutputCsvPath "data/seek_jobs.csv" -MaxPages 50 -PageSize 100
+
+      - name: Commit & push CSV changes
+        shell: bash
+        run: |
+          set -e
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add data/seek_jobs.csv || true
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Update Seek crawl results ($(date -u +'%Y-%m-%dT%H:%M:%SZ')) [skip ci]"
+            git push origin HEAD:main
+          fi
