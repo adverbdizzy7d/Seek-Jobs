@@ -30,7 +30,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           if (-not (Test-Path "./scripts/scrape-seek.ps1")) { throw "scripts/scrape-seek.ps1 not found" }
-          ./scripts/scrape-seek.ps1 -OutputCsvPath "data/seek_jobs.csv" -MaxPages 50 -PageSize 100
+          ./scripts/scrape-seek.ps1 -OutputCsvPath "data/seek_jobs.csv" 
 
       - name: Commit & push CSV changes
         shell: bash
