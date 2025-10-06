@@ -313,7 +313,7 @@ while ($page -le $MaxPages) {
       [void]$existingIds.Add($jid)
       $processedNew++
     } catch {
-      Write-Warning "Failed to process job $jid: $($_.Exception.Message)"
+      Write-Warning "Failed to process job $jid : $($_.Exception.Message)"
     }
   }
 
