@@ -21,8 +21,8 @@ In CI:
 [CmdletBinding()]
 param(
   [string]$OutputCsvPath = "data/seek_jobs.csv",
-  [int]$MaxPages = 50,
-  [int]$PageSize = 100,
+  [int]$MaxPages = 25,
+  [int]$PageSize = 22,
   [string]$Classification = "6281",      # ICT
   [string]$WorkType = "244",             # Contract/Temp
   [string]$SeekLocale = "en-AU",
@@ -30,7 +30,8 @@ param(
   [string]$SeekZone = "anz-1",
   [string]$SeekTimezone = "Europe/Berlin",
   [string]$GeminiModel = "gemini-2.5-flash-lite",
-  [int]$DelayMsBetweenRequests = 200
+  [int]$DelayMsBetweenRequests = 200,
+  [int]$DelayMsAfterGeminiRequest = 4000
 )
 
 # --- Safety checks
@@ -268,7 +269,7 @@ while ($page -le $MaxPages) {
       $text = Convert-HtmlToPlainText -Html $html
 
       $result = Invoke-GeminiJobContractExtraction -ApiKey $env:GEMINI_API_KEY -JobText $text -ModelName $GeminiModel
-      Start-Sleep -Milliseconds $DelayMsBetweenRequests
+      Start-Sleep -Milliseconds $DelayMsAfterGeminiRequest
 
       $row = [PSCustomObject]@{
         CrawlTime          = [DateTime]::UtcNow.ToString("o")
