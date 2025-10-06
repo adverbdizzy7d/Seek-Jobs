@@ -74,10 +74,11 @@ function Invoke-WebJsonWithRetry {
 
 function Convert-HtmlToPlainText {
   param([string]$Html)
-  if ([string]::IsNullOrWhiteSpace($Html)) { return "" }
-  $text = [regex]::Replace($Html, "<[^>]+>", " ")
-  $text = $text -replace "&nbsp;"," " -replace "&amp;","&" -replace "&#39;","'" -replace "&quot;",""" -replace "&lt;","<" -replace "&gt;",">"
-  ($text -replace "\s+"," ").Trim()
+  return $Html #disable this
+  #if ([string]::IsNullOrWhiteSpace($Html)) { return "" }
+  #$text = [regex]::Replace($Html, "<[^>]+>", " ")
+  #$text = $text -replace "&nbsp;"," " -replace "&amp;","&" -replace "&#39;","'" -replace "&quot;",""" -replace "&lt;","<" -replace "&gt;",">"
+  #($text -replace "\s+"," ").Trim()
 }
 
 # --- Gemini structured extraction (as in your snippet, slightly generalized)
