@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Seek Job Explorer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#0b1220; --card:#121a2a; --muted:#93a1b1; --text:#e8eef5; --accent:#7cc4ff; --accent2:#ffd166; --danger:#ff7b7b;
+      --ok:#2ecc71; --warn:#f2c94c; --chip:#1c2840;
+    }
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;}
+    a{color:var(--accent)}
+    .wrap{max-width:1200px;margin:0 auto;padding:16px 16px 80px}
+    .title{font-weight:700;font-size:clamp(20px,2.6vw,32px);letter-spacing:.2px}
+    .sub{color:var(--muted);margin-top:6px}
+    .panel{background:var(--card);border:1px solid #1c2440;border-radius:16px;padding:16px;margin:16px 0;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+    .grid{display:grid;gap:12px}
+    @media(min-width:720px){ .grid-3{grid-template-columns:repeat(3,1fr)} .grid-4{grid-template-columns:repeat(4,1fr)} }
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+    .field{flex:1;min-width:200px}
+    label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
+    input,select,button{
+      background:#0f1729;border:1px solid #223057;color:var(--text);
+      border-radius:10px;padding:10px 12px;font-size:14px;width:100%;box-sizing:border-box
+    }
+    button{background:linear-gradient(90deg,#2563eb,#22c1c3);border:none;cursor:pointer;font-weight:600}
+    button.secondary{background:#0f1729;border:1px solid #223057}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap}
+    .hint{font-size:12px;color:var(--muted)}
+    .warn{color:var(--danger)}
+    .ok{color:var(--ok)}
+    .cards{display:grid;gap:14px}
+    @media(min-width:640px){ .cards{grid-template-columns:repeat(2,1fr)} }
+    @media(min-width:1040px){ .cards{grid-template-columns:repeat(3,1fr)} }
+    .card{background:var(--card);border:1px solid #1c2440;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px}
+    .card h3{margin:0;font-size:16px}
+    .chips{display:flex;gap:6px;flex-wrap:wrap}
+    .chip{background:var(--chip);color:var(--text);border:1px solid #223057;padding:4px 8px;border-radius:999px;font-size:12px}
+    .meta{font-size:12px;color:var(--muted)}
+    details summary{cursor:pointer;list-style:none}
+    details summary::-webkit-details-marker{display:none}
+    .summary{display:flex;align-items:center;gap:6px;font-weight:600}
+    .linkbar{display:flex;gap:8px;flex-wrap:wrap}
+    .btn{display:inline-flex;align-items:center;gap:6px;background:#0f1729;border:1px solid #223057;color:var(--text);padding:8px 10px;border-radius:10px;font-size:13px;text-decoration:none}
+    .sr{position:absolute;left:-9999px}
+    .divider{height:1px;background:#1c2440;margin:8px 0}
+    .right{margin-left:auto}
+    .center{display:flex;align-items:center;justify-content:center}
+    .skeleton{background:linear-gradient(90deg,#0f1729,#15203b,#0f1729);background-size:200% 100%;animation:sh 1.2s infinite}
+    @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+    .empty{border:1px dashed #223057;border-radius:12px;padding:24px;color:var(--muted)}
+    .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;border:1px solid #223057;background:#0f1729;color:var(--muted)}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js" defer></script>
+</head>
+<body>
+  <div class="wrap">
+    <h1 class="title">Seek Job Explorer</h1>
+    <p class="sub">Browse and enrich crawled SEEK jobs using your public CSV. Works on GitHub Pages (client-only).</p>
+    <div class="panel" id="filterPanel">
+      <h2 style="margin:0 0 12px;font-size:18px;">1) Choose filters</h2>
+      <div class="grid grid-4">
+        <div class="field">
+          <label for="daysInput">Only show jobs crawled in the last X days</label>
+          <input type="number" id="daysInput" min="0" step="1" value="7" />
+          <div class="hint">0 = no time filter</div>
+        </div>
+        <div class="field">
+          <label for="durationSpecified">duration_specified</label>
+          <select id="durationSpecified">
+            <option value="any" selected>Any</option>
+            <option value="true">true</option>
+            <option value="false">false</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>duration_months (min/max)</label>
+          <div class="row">
+            <input type="number" id="durMin" placeholder="min" min="0" />
+            <input type="number" id="durMax" placeholder="max" min="0" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="renewalMentioned">renewal_mentioned</label>
+          <select id="renewalMentioned">
+            <option value="any" selected>Any</option>
+            <option value="true">true</option>
+            <option value="false">false</option>
+          </select>
+        </div>
+      </div>
+      <div class="toolbar" style="margin-top:12px">
+        <button id="loadBtn">2) Load jobs</button>
+        <button id="resetBtn" class="secondary">Reset</button>
+        <span class="hint right" id="statusHint">Waiting for input…</span>
+      </div>
+      <div class="hint" id="corsHint" style="margin-top:8px;display:none">
+        <span class="warn">Heads-up:</span> SEEK job detail API blocked by CORS. The page will show CSV data only. You can still open the job on SEEK.
+      </div>
+    </div>
+    <div class="panel">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <h2 style="margin:0;font-size:18px">Results</h2>
+        <span class="badge" id="resultCount">0 jobs</span>
+      </div>
+      <div class="divider"></div>
+      <div id="cards" class="cards"></div>
+      <div id="empty" class="empty" style="display:none">No jobs match your filters.</div>
+    </div>
+  </div>
+  <script>
+    const CSV_URL = "https://raw.githubusercontent.com/adverbdizzy7d/Seek-Jobs/refs/heads/main/data/seek_jobs.csv";
+    const daysInput = document.getElementById('daysInput');
+    const durationSpecified = document.getElementById('durationSpecified');
+    const durMin = document.getElementById('durMin');
+    const durMax = document.getElementById('durMax');
+    const renewalMentioned = document.getElementById('renewalMentioned');
+    const loadBtn = document.getElementById('loadBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const cardsEl = document.getElementById('cards');
+    const emptyEl = document.getElementById('empty');
+    const statusHint = document.getElementById('statusHint');
+    const resultCount = document.getElementById('resultCount');
+    const corsHint = document.getElementById('corsHint');
+    const sleep = (ms)=> new Promise(r=>setTimeout(r, ms));
+    const toBool = (v)=> String(v).toLowerCase()==='true';
+    function withinDays(iso, days){
+      if(!days || days<=0) return true;
+      const dt = new Date(iso);
+      if(isNaN(dt)) return false;
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate()-days);
+      return dt >= cutoff;
+    }
+    function numberOrNull(v){
+      if(v==='' || v===null || v===undefined) return null;
+      const n = Number(v);
+      return isNaN(n) ? null : n;
+    }
+    function fmtDate(iso){
+      const d = new Date(iso);
+      if(isNaN(d)) return '—';
+      return d.toISOString().replace('T',' ').replace('Z',' UTC');
+    }
+    const SEEK_GQL = "https://www.seek.com.au/graphql";
+    const seekQuery = `query jobDetails($jobId: ID!, $jobDetailsViewedCorrelationId: String!, $sessionId: String!, $zone: Zone!, $locale: Locale!, $languageCode: LanguageCodeIso!, $countryCode: CountryCodeIso2!, $timezone: Timezone!, $visitorId: UUID!, $enableApplicantCount: Boolean!, $enableWorkArrangements: Boolean!) { jobDetails(id: $jobId tracking: {channel: \"WEB\", jobDetailsViewedCorrelationId: $jobDetailsViewedCorrelationId, sessionId: $sessionId}) { job { id title isExpired expiresAt { dateTimeUtc } abstract location { label } products { bullets } content(platform: WEB) } } }`;
+    async function fetchSeekDetails(jobId){
+      const vars = {
+        jobId,
+        jobDetailsViewedCorrelationId: crypto.randomUUID(),
+        sessionId: crypto.randomUUID(),
+        zone: "anz-1",
+        locale: "en-AU",
+        languageCode: "en",
+        countryCode: "AU",
+        timezone: "Europe/Berlin",
+        visitorId: crypto.randomUUID(),
+        enableApplicantCount: false,
+        enableWorkArrangements: true
+      };
+      const body = JSON.stringify({operationName:"jobDetails", query: seekQuery, variables: vars});
+      const res = await fetch(SEEK_GQL, {method: "POST", headers: {"Content-Type":"application/json"}, body});
+      if(!res.ok) throw new Error("HTTP "+res.status);
+      const json = await res.json();
+      return json?.data?.jobDetails?.job;
+    }
+    function cardSkeleton(jobId){
+      const url = `https://www.seek.com.au/job/${jobId}`;
+      return `<article class="card" data-id="${jobId}"><h3><a href="${url}" target="_blank" rel="noopener">Job ${jobId}</a></h3><div class="meta">Loading SEEK details…</div></article>`;
+    }
+    function escapeHtml(s){return String(s ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");}
+    function fmt(job,row,cors){
+      const url=`https://www.seek.com.au/job/${row.jobID}`;
+      const title=job?.title||`Job ${row.jobID}`;
+      const loc=job?.location?.label||"—";
+      const exp=job?.isExpired?"Expired":"Active";
+      const exAt=job?.expiresAt?.dateTimeUtc?fmtDate(job.expiresAt.dateTimeUtc):"—";
+      const bullets=(job?.products?.bullets||[]).map(b=>`<li>${escapeHtml(b)}</li>`).join("");
+      const abs=job?.abstract?escapeHtml(job.abstract):"—";
+      const html=job?.content||"<em>No content</em>";
+      const corsNote=cors?`<div class='hint warn'>CORS blocked, CSV only.</div>`:"";
+      return `<article class='card'><h3><a href='${url}' target='_blank'>${title}</a></h3><div class='chips'><span class='chip'>${exp}</span><span class='chip'>Location: ${loc}</span><span class='chip'>Expires: ${exAt}</span></div><div class='meta'>Crawl: ${fmtDate(row.CrawlTime)}</div><div class='chips'><span class='chip'>duration_specified: ${row.duration_specified}</span><span class='chip'>duration_months: ${row.duration_months}</span><span class='chip'>renewal_mentioned: ${row.renewal_mentioned}</span></div>${corsNote}<p><strong>Abstract:</strong> ${abs}</p>${bullets?`<ul>${bullets}</ul>`:""}<details><summary class='summary'>Show description</summary><div>${html}</div></details><div class='linkbar'><a class='btn' href='${url}' target='_blank'>Open on SEEK</a></div></article>`;
+    }
+    function setStatus(m){statusHint.textContent=m;}
+    loadBtn.addEventListener('click',async()=>{
+      setStatus("Loading CSV…");
+      corsHint.style.display="none";
+      cardsEl.innerHTML="";
+      emptyEl.style.display="none";
+      resultCount.textContent="0 jobs";
+      let csvText;
+      try{const res=await fetch(CSV_URL,{cache:"no-store"});if(!res.ok)throw new Error(res.status);csvText=await res.text();}catch(e){setStatus("Failed: "+e.message);return;}
+      const parsed=Papa.parse(csvText,{header:true,skipEmptyLines:true});
+      let rows=parsed.data.map(r=>({CrawlTime:r.CrawlTime,jobID:r.jobID,duration_specified:String(r.duration_specified).toLowerCase(),duration_months:Number(r.duration_months),renewal_mentioned:String(r.renewal_mentioned).toLowerCase()}));
+      const days=Number(daysInput.value);const ds=durationSpecified.value;const rm=renewalMentioned.value;const mn=numberOrNull(durMin.value);const mx=numberOrNull(durMax.value);
+      rows=rows.filter(r=>{if(!withinDays(r.CrawlTime,days))return false;if(ds!=='any'&&r.duration_specified!==ds)return false;if(rm!=='any'&&r.renewal_mentioned!==rm)return false;if(mn!==null&&r.duration_months<mn)return false;if(mx!==null&&r.duration_months>mx)return false;return true;});
+      if(!rows.length){emptyEl.style.display="block";setStatus("No matches");return;}
+      cardsEl.innerHTML=rows.map(r=>cardSkeleton(r.jobID)).join("");
+      resultCount.textContent=`${rows.length} jobs`;
+      setStatus("Fetching SEEK details…");
+      let cors=false;const resArr=[];let i=0;async function worker(){while(i<rows.length){const idx=i++;try{const j=await fetchSeekDetails(rows[idx].jobID);resArr[idx]={job:j,ok:true};await sleep(150);}catch(e){resArr[idx]={job:null,ok:false};cors=true;}}}
+      await Promise.all(Array.from({length:3},worker));
+      if(cors)corsHint.style.display="block";
+      cardsEl.innerHTML=rows.map((r,i)=>fmt(resArr[i]?.job,r,cors&&!resArr[i]?.ok)).join("");
+      setStatus("Done.");
+    });
+    resetBtn.addEventListener('click',()=>{daysInput.value=7;durationSpecified.value='any';durMin.value='';durMax.value='';renewalMentioned.value='any';cardsEl.innerHTML='';emptyEl.style.display="none";resultCount.textContent='0 jobs';setStatus('Waiting for input…');corsHint.style.display='none';});
+  </script>
+</body>
+</html>
