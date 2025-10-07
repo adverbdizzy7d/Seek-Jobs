@@ -145,26 +145,109 @@
     }
     const SEEK_GQL = "/seek-gql";
     const seekQuery = `query jobDetails($jobId: ID!, $jobDetailsViewedCorrelationId: String!, $sessionId: String!, $zone: Zone!, $locale: Locale!, $languageCode: LanguageCodeIso!, $countryCode: CountryCodeIso2!, $timezone: Timezone!, $visitorId: UUID!, $enableApplicantCount: Boolean!, $enableWorkArrangements: Boolean!) { jobDetails(id: $jobId tracking: {channel: \"WEB\", jobDetailsViewedCorrelationId: $jobDetailsViewedCorrelationId, sessionId: $sessionId}) { job { id title isExpired expiresAt { dateTimeUtc } abstract location { label } products { bullets } content(platform: WEB) } } }`;
-    async function fetchSeekDetails(jobId){
-      const vars = {
-        jobId,
-        jobDetailsViewedCorrelationId: crypto.randomUUID(),
-        sessionId: crypto.randomUUID(),
-        zone: "anz-1",
-        locale: "en-AU",
-        languageCode: "en",
-        countryCode: "AU",
-        timezone: "Europe/Berlin",
-        visitorId: crypto.randomUUID(),
-        enableApplicantCount: false,
-        enableWorkArrangements: true
-      };
-      const body = JSON.stringify({operationName:"jobDetails", query: seekQuery, variables: vars});
-      const res = await fetch(SEEK_GQL, {method: "POST", headers: {"Content-Type":"application/json"}, body});
-      if(!res.ok) throw new Error("HTTP "+res.status);
-      const json = await res.json();
-      return json?.data?.jobDetails?.job;
+    async function fetchSeekDetails(jobId) {
+  const SEEK_GQL = "/seek-gql"; // Cloudflare Pages Function proxy endpoint
+
+  const body = buildSeekBody(jobId);
+
+  const res = await fetch(SEEK_GQL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body
+  });
+
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  const json = await res.json();
+  return json?.data?.jobDetails?.job;
+}
+
+function buildSeekBody(jobId) {
+  const body = {
+    operationName: "jobDetails",
+    variables: {
+      jobId: jobId,
+      jobDetailsViewedCorrelationId: crypto.randomUUID(),
+      sessionId: crypto.randomUUID(),
+      zone: "anz-1",
+      locale: "en-AU",
+      languageCode: "en",
+      countryCode: "AU",
+      timezone: "Europe/Berlin",
+      visitorId: crypto.randomUUID(),
+      enableApplicantCount: false,
+      enableWorkArrangements: true
+    },
+    query: `query jobDetails($jobId: ID!, $jobDetailsViewedCorrelationId: String!, $sessionId: String!, $zone: Zone!, $locale: Locale!, $languageCode: LanguageCodeIso!, $countryCode: CountryCodeIso2!, $timezone: Timezone!, $visitorId: UUID!, $enableApplicantCount: Boolean!, $enableWorkArrangements: Boolean!) {
+  jobDetails(
+    id: $jobId
+    tracking: {channel: "WEB", jobDetailsViewedCorrelationId: $jobDetailsViewedCorrelationId, sessionId: $sessionId}
+  ) {
+    ...job
+    insights @include(if: $enableApplicantCount) {
+      ... on ApplicantCount {
+        countLabel(locale: $locale)
+        volumeLabel(locale: $locale)
+        count
+        __typename
+      }
+      __typename
     }
+    learningInsights(platform: WEB, zone: $zone, locale: $locale) {
+      analytics
+      content
+      __typename
+    }
+    gfjInfo {
+      location {
+        countryCode
+        country(locale: $locale)
+        suburb(locale: $locale)
+        region(locale: $locale)
+        state(locale: $locale)
+        postcode
+        __typename
+      }
+      workTypes { label __typename }
+      company { url(locale: $locale, zone: $zone) __typename }
+      __typename
+    }
+    workArrangements(visitorId: $visitorId, channel: "JDV", platform: WEB) @include(if: $enableWorkArrangements) {
+      arrangements { type label(locale: $locale) __typename }
+      label(locale: $locale)
+      __typename
+    }
+    seoInfo {
+      normalisedRoleTitle
+      workType
+      classification
+      subClassification
+      where(zone: $zone)
+      broaderLocationName(locale: $locale)
+      normalisedOrganisationName
+      __typename
+    }
+    __typename
+  }
+}
+
+fragment job on JobDetails {
+  job {
+    id
+    title
+    isExpired
+    expiresAt { dateTimeUtc __typename }
+    abstract
+    content(platform: WEB)
+    location { label __typename }
+    products { bullets __typename }
+    __typename
+  }
+}`
+  };
+  return JSON.stringify(body);
+}
+
+    
     function cardSkeleton(jobId){
       const url = `https://www.seek.com.au/job/${jobId}`;
       return `<article class="card" data-id="${jobId}"><h3><a href="${url}" target="_blank" rel="noopener">Job ${jobId}</a></h3><div class="meta">Loading SEEK details…</div></article>`;
