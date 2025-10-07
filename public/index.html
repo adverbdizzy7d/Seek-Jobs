@@ -143,7 +143,7 @@
       if(isNaN(d)) return '—';
       return d.toISOString().replace('T',' ').replace('Z',' UTC');
     }
-    const SEEK_GQL = "https://www.seek.com.au/graphql";
+    const SEEK_GQL = "/seek-gql";
     const seekQuery = `query jobDetails($jobId: ID!, $jobDetailsViewedCorrelationId: String!, $sessionId: String!, $zone: Zone!, $locale: Locale!, $languageCode: LanguageCodeIso!, $countryCode: CountryCodeIso2!, $timezone: Timezone!, $visitorId: UUID!, $enableApplicantCount: Boolean!, $enableWorkArrangements: Boolean!) { jobDetails(id: $jobId tracking: {channel: \"WEB\", jobDetailsViewedCorrelationId: $jobDetailsViewedCorrelationId, sessionId: $sessionId}) { job { id title isExpired expiresAt { dateTimeUtc } abstract location { label } products { bullets } content(platform: WEB) } } }`;
     async function fetchSeekDetails(jobId){
       const vars = {
