@@ -58,14 +58,17 @@
   <div class="wrap">
     <h1 class="title">Seek Job Explorer</h1>
     <p class="sub">Browse and enrich crawled SEEK jobs using your public CSV. Works on GitHub Pages (client-only).</p>
+
     <div class="panel" id="filterPanel">
       <h2 style="margin:0 0 12px;font-size:18px;">1) Choose filters</h2>
+
       <div class="grid grid-4">
         <div class="field">
           <label for="daysInput">Only show jobs crawled in the last X days</label>
           <input type="number" id="daysInput" min="0" step="1" value="7" />
           <div class="hint">0 = no time filter</div>
         </div>
+
         <div class="field">
           <label for="durationSpecified">duration_specified</label>
           <select id="durationSpecified">
@@ -74,6 +77,7 @@
             <option value="false">false</option>
           </select>
         </div>
+
         <div class="field">
           <label>duration_months (min/max)</label>
           <div class="row">
@@ -81,6 +85,7 @@
             <input type="number" id="durMax" placeholder="max" min="0" />
           </div>
         </div>
+
         <div class="field">
           <label for="renewalMentioned">renewal_mentioned</label>
           <select id="renewalMentioned">
@@ -90,6 +95,38 @@
           </select>
         </div>
       </div>
+
+      <!-- NEW: Start filters -->
+      <div class="grid grid-4" style="margin-top:12px">
+        <div class="field">
+          <label for="startSpecified">start_specified</label>
+          <select id="startSpecified">
+            <option value="any" selected>Any</option>
+            <option value="true">true</option>
+            <option value="false">false</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>start_iso range (from/to)</label>
+          <div class="row">
+            <input type="date" id="startFrom" />
+            <input type="date" id="startTo" />
+          </div>
+          <div class="hint">Jobs without a concrete date won't match this range.</div>
+        </div>
+
+        <div class="field">
+          <label for="startDescriptor">start_descriptor contains…</label>
+          <input type="text" id="startDescriptor" placeholder="e.g. ASAP, January, Q1" />
+        </div>
+
+        <div class="field">
+          <label class="sr">spacer</label>
+          <div class="hint">Tip: combine “start_specified=true” + keyword “ASAP” to find immediate starts.</div>
+        </div>
+      </div>
+
       <div class="toolbar" style="margin-top:12px">
         <button id="loadBtn">2) Load jobs</button>
         <button id="resetBtn" class="secondary">Reset</button>
@@ -99,6 +136,7 @@
         <span class="warn">Heads-up:</span> SEEK job detail API blocked by CORS. The page will show CSV data only. You can still open the job on SEEK.
       </div>
     </div>
+
     <div class="panel">
       <div class="row" style="justify-content:space-between;align-items:center">
         <h2 style="margin:0;font-size:18px">Results</h2>
@@ -109,13 +147,23 @@
       <div id="empty" class="empty" style="display:none">No jobs match your filters.</div>
     </div>
   </div>
+
   <script>
     const CSV_URL = "https://raw.githubusercontent.com/adverbdizzy7d/Seek-Jobs/refs/heads/main/data/seek_jobs.csv";
+
+    // controls
     const daysInput = document.getElementById('daysInput');
     const durationSpecified = document.getElementById('durationSpecified');
     const durMin = document.getElementById('durMin');
     const durMax = document.getElementById('durMax');
     const renewalMentioned = document.getElementById('renewalMentioned');
+
+    // NEW start controls
+    const startSpecified = document.getElementById('startSpecified');
+    const startFrom = document.getElementById('startFrom');
+    const startTo = document.getElementById('startTo');
+    const startDescriptor = document.getElementById('startDescriptor');
+
     const loadBtn = document.getElementById('loadBtn');
     const resetBtn = document.getElementById('resetBtn');
     const cardsEl = document.getElementById('cards');
@@ -123,8 +171,10 @@
     const statusHint = document.getElementById('statusHint');
     const resultCount = document.getElementById('resultCount');
     const corsHint = document.getElementById('corsHint');
+
     const sleep = (ms)=> new Promise(r=>setTimeout(r, ms));
     const toBool = (v)=> String(v).toLowerCase()==='true';
+
     function withinDays(iso, days){
       if(!days || days<=0) return true;
       const dt = new Date(iso);
@@ -143,297 +193,116 @@
       if(isNaN(d)) return '—';
       return d.toISOString().replace('T',' ').replace('Z',' UTC');
     }
+    function withinDateRange(dateStr, fromStr, toStr){
+      if(!fromStr && !toStr) return true;
+      const d = new Date(dateStr);
+      if(isNaN(d)) return false; // only concrete dates can match the range
+      if(fromStr){
+        const from = new Date(fromStr + "T00:00:00Z");
+        if(d < from) return false;
+      }
+      if(toStr){
+        const to = new Date(toStr + "T23:59:59Z");
+        if(d > to) return false;
+      }
+      return true;
+    }
+
     const SEEK_GQL = "/seek-gql";
-    const seekQuery = `query jobDetails($jobId: ID!, $jobDetailsViewedCorrelationId: String!, $sessionId: String!, $zone: Zone!, $locale: Locale!, $languageCode: LanguageCodeIso!, $countryCode: CountryCodeIso2!, $timezone: Timezone!, $visitorId: UUID!, $enableApplicantCount: Boolean!, $enableWorkArrangements: Boolean!) { jobDetails(id: $jobId tracking: {channel: \"WEB\", jobDetailsViewedCorrelationId: $jobDetailsViewedCorrelationId, sessionId: $sessionId}) { job { id title isExpired expiresAt { dateTimeUtc } abstract location { label } products { bullets } content(platform: WEB) } } }`;
-    // Drop-in replacement for your frontend (Pages). This builds the *exact* JSON body
-    // like your PowerShell/original SEEK request:
-    //  {"operationName":"jobDetails","variables":{...},"query":"query jobDetails(...) { ... }"}
-    //
-    // - Property order preserved: operationName -> variables -> query
-    // - GUIDs are generated fresh per call via crypto.randomUUID()
-    // - Query string, escaping, and \n newlines mirror the original payload
-    
+
+    function escapeHtml(s){return String(s ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");}
+
+    function cardSkeleton(jobId){
+      const url = `https://www.seek.com.au/job/${jobId}`;
+      return `<article class="card" data-id="${jobId}">
+        <h3><a href="${url}" target="_blank" rel="noopener">Job ${jobId}</a></h3>
+        <div class="meta">Loading SEEK details…</div>
+      </article>`;
+    }
+
+    // Build exact GQL body (unchanged; kept for the SEEK details fetch)
     function buildSeekBodyExact(jobId) {
       const jobDetailsViewedCorrelationId = crypto.randomUUID();
       const sessionId = crypto.randomUUID();
       const visitorId = crypto.randomUUID();
-    
-      // Die GraphQL-Query als separater String
       const query = `query jobDetails($jobId: ID!, $jobDetailsViewedCorrelationId: String!, $sessionId: String!, $zone: Zone!, $locale: Locale!, $languageCode: LanguageCodeIso!, $countryCode: CountryCodeIso2!, $timezone: Timezone!, $visitorId: UUID!, $enableApplicantCount: Boolean!, $enableWorkArrangements: Boolean!) {
         jobDetails(id: $jobId, tracking: {channel: "WEB", jobDetailsViewedCorrelationId: $jobDetailsViewedCorrelationId, sessionId: $sessionId}) {
           ...job
-          insights @include(if: $enableApplicantCount) {
-            ... on ApplicantCount {
-              countLabel(locale: $locale)
-              volumeLabel(locale: $locale)
-              count
-              __typename
-            }
-            __typename
-          }
-          learningInsights(platform: WEB, zone: $zone, locale: $locale) {
-            analytics
-            content
-            __typename
-          }
-          gfjInfo {
-            location {
-              countryCode
-              country(locale: $locale)
-              suburb(locale: $locale)
-              region(locale: $locale)
-              state(locale: $locale)
-              postcode
-              __typename
-            }
-            workTypes {
-              label
-              __typename
-            }
-            company {
-              url(locale: $locale, zone: $zone)
-              __typename
-            }
-            __typename
-          }
-          workArrangements(visitorId: $visitorId, channel: "JDV", platform: WEB) @include(if: $enableWorkArrangements) {
-            arrangements {
-              type
-              label(locale: $locale)
-              __typename
-            }
-            label(locale: $locale)
-            __typename
-          }
-          seoInfo {
-            normalisedRoleTitle
-            workType
-            classification
-            subClassification
-            where(zone: $zone)
-            broaderLocationName(locale: $locale)
-            normalisedOrganisationName
-            __typename
-          }
+          insights @include(if: $enableApplicantCount) { ... on ApplicantCount { countLabel(locale: $locale) volumeLabel(locale: $locale) count __typename } __typename }
+          learningInsights(platform: WEB, zone: $zone, locale: $locale) { analytics content __typename }
+          gfjInfo { location { countryCode country(locale: $locale) suburb(locale: $locale) region(locale: $locale) state(locale: $locale) postcode __typename } workTypes { label __typename } company { url(locale: $locale, zone: $zone) __typename } __typename }
+          workArrangements(visitorId: $visitorId, channel: "JDV", platform: WEB) @include(if: $enableWorkArrangements) { arrangements { type label(locale: $locale) __typename } label(locale: $locale) __typename }
+          seoInfo { normalisedRoleTitle workType classification subClassification where(zone: $zone) broaderLocationName(locale: $locale) normalisedOrganisationName __typename }
           __typename
         }
       }
-    
       fragment job on JobDetails {
         job {
           sourceZone
-          tracking {
-            adProductType
-            classificationInfo {
-              classificationId
-              classification
-              subClassificationId
-              subClassification
-              __typename
-            }
-            hasRoleRequirements
-            isPrivateAdvertiser
-            locationInfo {
-              area
-              location
-              locationIds
-              __typename
-            }
-            workTypeIds
-            postedTime
-            __typename
-          }
-          id
-          title
-          phoneNumber
-          isExpired
-          expiresAt {
-            dateTimeUtc
-            __typename
-          }
-          isLinkOut
-          contactMatches {
-            type
-            value
-            __typename
-          }
-          isVerified
-          abstract
-          content(platform: WEB)
-          status
-          listedAt {
-            label(context: JOB_POSTED, length: SHORT, timezone: $timezone, locale: $locale)
-            dateTimeUtc
-            __typename
-          }
-          salary {
-            currencyLabel(zone: $zone)
-            label
-            __typename
-          }
+          tracking { adProductType classificationInfo { classificationId classification subClassificationId subClassification __typename } hasRoleRequirements isPrivateAdvertiser locationInfo { area location locationIds __typename } workTypeIds postedTime __typename }
+          id title phoneNumber isExpired
+          expiresAt { dateTimeUtc __typename }
+          isLinkOut contactMatches { type value __typename } isVerified abstract content(platform: WEB) status
+          listedAt { label(context: JOB_POSTED, length: SHORT, timezone: $timezone, locale: $locale) dateTimeUtc __typename }
+          salary { currencyLabel(zone: $zone) label __typename }
           shareLink(platform: WEB, zone: $zone, locale: $locale)
-          workTypes {
-            label(locale: $locale)
-            __typename
-          }
-          advertiser {
-            id
-            name(locale: $locale)
-            isVerified
-            registrationDate {
-              dateTimeUtc
-              __typename
-            }
-            __typename
-          }
-          location {
-            label(locale: $locale, type: LONG)
-            __typename
-          }
-          classifications {
-            label(languageCode: $languageCode)
-            __typename
-          }
-          products {
-            branding {
-              id
-              cover {
-                url
-                __typename
-              }
-              thumbnailCover: cover(isThumbnail: true) {
-                url
-                __typename
-              }
-              logo {
-                url
-                __typename
-              }
-              __typename
-            }
-            bullets
-            questionnaire {
-              questions
-              __typename
-            }
-            video {
-              url
-              position
-              __typename
-            }
-            displayTags {
-              label(locale: $locale)
-              __typename
-            }
-            __typename
-          }
+          workTypes { label(locale: $locale) __typename }
+          advertiser { id name(locale: $locale) isVerified registrationDate { dateTimeUtc __typename } __typename }
+          location { label(locale: $locale, type: LONG) __typename }
+          classifications { label(languageCode: $languageCode) __typename }
+          products { branding { id cover { url __typename } thumbnailCover: cover(isThumbnail: true) { url __typename } logo { url __typename } __typename } bullets questionnaire { questions __typename } video { url position __typename } displayTags { label(locale: $locale) __typename } __typename }
           __typename
         }
-        companyProfile(zone: $zone) {
-          id
-          name
-          companyNameSlug
-          shouldDisplayReviews
-          branding {
-            logo
-            __typename
-          }
-          overview {
-            description {
-              paragraphs
-              __typename
-            }
-            industry
-            size {
-              description
-              __typename
-            }
-            website {
-              url
-              __typename
-            }
-            __typename
-          }
-          reviewsSummary {
-            overallRating {
-              numberOfReviews {
-                value
-                __typename
-              }
-              value
-              __typename
-            }
-            __typename
-          }
-          perksAndBenefits {
-            title
-            __typename
-          }
-          __typename
-        }
+        companyProfile(zone: $zone) { id name companyNameSlug shouldDisplayReviews branding { logo __typename } overview { description { paragraphs __typename } industry size { description __typename } website { url __typename } __typename } reviewsSummary { overallRating { numberOfReviews { value __typename } value __typename } __typename } perksAndBenefits { title __typename } __typename }
         companySearchUrl(zone: $zone, languageCode: $languageCode)
-        companyTags {
-          key(languageCode: $languageCode)
-          value
-          __typename
-        }
-        restrictedApplication(countryCode: $countryCode) {
-          label(locale: $locale)
-          __typename
-        }
-        sourcr {
-          image
-          imageMobile
-          link
-          __typename
-        }
+        companyTags { key(languageCode: $languageCode) value __typename }
+        restrictedApplication(countryCode: $countryCode) { label(locale: $locale) __typename }
+        sourcr { image imageMobile link __typename }
         __typename
       }`;
-    
-      // Erstelle den Body als JavaScript-Objekt
       const body = {
         operationName: "jobDetails",
         variables: {
-          jobId: jobId,
-          jobDetailsViewedCorrelationId: jobDetailsViewedCorrelationId,
-          sessionId: sessionId,
+          jobId,
+          jobDetailsViewedCorrelationId,
+          sessionId,
           zone: "anz-1",
           locale: "en-AU",
           languageCode: "en",
           countryCode: "AU",
           timezone: "Europe/Berlin",
-          visitorId: visitorId,
+          visitorId,
           enableApplicantCount: false,
-          enableWorkArrangements: true,
+          enableWorkArrangements: true
         },
-        query: query,
+        query
       };
-    
-      // Wandle das Objekt in einen gültigen JSON-String um
       return JSON.stringify(body);
     }
-    
+
     async function fetchSeekDetails(jobId) {
-      // Cloudflare Pages Function endpoint (same origin)
-      const SEEK_GQL = "/seek-gql";
-    
       const res = await fetch(SEEK_GQL, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Accept": "*/*" },
         body: buildSeekBodyExact(jobId)
       });
-    
       if (!res.ok) throw new Error("HTTP " + res.status);
       const json = await res.json();
       return json?.data?.jobDetails?.job;
     }
 
-    
-    function cardSkeleton(jobId){
-      const url = `https://www.seek.com.au/job/${jobId}`;
-      return `<article class="card" data-id="${jobId}"><h3><a href="${url}" target="_blank" rel="noopener">Job ${jobId}</a></h3><div class="meta">Loading SEEK details…</div></article>`;
+    function fmtStartChip(row){
+      const specified = String(row.start_specified ?? '').toLowerCase();
+      const isSpecified = specified === 'true';
+      const iso = row.start_iso || '';
+      const desc = row.start_descriptor || (isSpecified ? '' : 'not specified');
+      const parts = [];
+      parts.push(`<span class='chip'>start_specified: ${isSpecified}</span>`);
+      parts.push(`<span class='chip'>start_iso: ${iso || '—'}</span>`);
+      parts.push(`<span class='chip'>start_descriptor: ${escapeHtml(desc || '—')}</span>`);
+      return parts.join('');
     }
-    function escapeHtml(s){return String(s ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");}
+
     function fmt(job,row,cors){
       const url=`https://www.seek.com.au/job/${row.jobID}`;
       const title=job?.title||`Job ${row.jobID}`;
@@ -444,32 +313,150 @@
       const abs=job?.abstract?escapeHtml(job.abstract):"—";
       const html=job?.content||"<em>No content</em>";
       const corsNote=cors?`<div class='hint warn'>CORS blocked, CSV only.</div>`:"";
-      return `<article class='card'><h3><a href='${url}' target='_blank'>${title}</a></h3><div class='chips'><span class='chip'>${exp}</span><span class='chip'>Location: ${loc}</span><span class='chip'>Expires: ${exAt}</span></div><div class='meta'>Crawl: ${fmtDate(row.CrawlTime)}</div><div class='chips'><span class='chip'>duration_specified: ${row.duration_specified}</span><span class='chip'>duration_months: ${row.duration_months}</span><span class='chip'>renewal_mentioned: ${row.renewal_mentioned}</span></div>${corsNote}<p><strong>Abstract:</strong> ${abs}</p>${bullets?`<ul>${bullets}</ul>`:""}<details><summary class='summary'>Show description</summary><div>${html}</div></details><div class='linkbar'><a class='btn' href='${url}' target='_blank'>Open on SEEK</a></div></article>`;
+      return `<article class='card'>
+        <h3><a href='${url}' target='_blank' rel='noopener'>${title}</a></h3>
+        <div class='chips'>
+          <span class='chip'>${exp}</span>
+          <span class='chip'>Location: ${loc}</span>
+          <span class='chip'>Expires: ${exAt}</span>
+        </div>
+        <div class='meta'>Crawl: ${fmtDate(row.CrawlTime)}</div>
+        <div class='chips'>
+          <span class='chip'>duration_specified: ${row.duration_specified}</span>
+          <span class='chip'>duration_months: ${row.duration_months}</span>
+          <span class='chip'>renewal_mentioned: ${row.renewal_mentioned}</span>
+        </div>
+        <div class='chips'>
+          ${fmtStartChip(row)}
+        </div>
+        ${corsNote}
+        <p><strong>Abstract:</strong> ${abs}</p>
+        ${bullets?`<ul>${bullets}</ul>`:""}
+        <details><summary class='summary'>Show description</summary><div>${html}</div></details>
+        <div class='linkbar'>
+          <a class='btn' href='${url}' target='_blank' rel='noopener'>Open on SEEK</a>
+        </div>
+      </article>`;
     }
+
     function setStatus(m){statusHint.textContent=m;}
+
     loadBtn.addEventListener('click',async()=>{
       setStatus("Loading CSV…");
       corsHint.style.display="none";
       cardsEl.innerHTML="";
       emptyEl.style.display="none";
       resultCount.textContent="0 jobs";
+
       let csvText;
-      try{const res=await fetch(CSV_URL,{cache:"no-store"});if(!res.ok)throw new Error(res.status);csvText=await res.text();}catch(e){setStatus("Failed: "+e.message);return;}
+      try{
+        const res=await fetch(CSV_URL,{cache:"no-store"});
+        if(!res.ok)throw new Error(res.status);
+        csvText=await res.text();
+      }catch(e){
+        setStatus("Failed: "+e.message);
+        return;
+      }
+
       const parsed=Papa.parse(csvText,{header:true,skipEmptyLines:true});
-      let rows=parsed.data.map(r=>({CrawlTime:r.CrawlTime,jobID:r.jobID,duration_specified:String(r.duration_specified).toLowerCase(),duration_months:Number(r.duration_months),renewal_mentioned:String(r.renewal_mentioned).toLowerCase()}));
-      const days=Number(daysInput.value);const ds=durationSpecified.value;const rm=renewalMentioned.value;const mn=numberOrNull(durMin.value);const mx=numberOrNull(durMax.value);
-      rows=rows.filter(r=>{if(!withinDays(r.CrawlTime,days))return false;if(ds!=='any'&&r.duration_specified!==ds)return false;if(rm!=='any'&&r.renewal_mentioned!==rm)return false;if(mn!==null&&r.duration_months<mn)return false;if(mx!==null&&r.duration_months>mx)return false;return true;});
-      if(!rows.length){emptyEl.style.display="block";setStatus("No matches");return;}
+
+      // Map CSV rows with safe defaults (backward compatible)
+      let rows=parsed.data.map(r=>({
+        CrawlTime: r.CrawlTime,
+        jobID: r.jobID,
+        duration_specified: String(r.duration_specified).toLowerCase(),
+        duration_months: Number(r.duration_months),
+        renewal_mentioned: String(r.renewal_mentioned).toLowerCase(),
+        start_specified: (r.start_specified!==undefined && r.start_specified!==null && r.start_specified!=='') ? String(r.start_specified).toLowerCase() : 'false',
+        start_iso: r.start_iso || '',
+        start_descriptor: r.start_descriptor || (String(r.start_specified).toLowerCase()==='true' ? '' : 'not specified')
+      }));
+
+      // Read filters
+      const days=Number(daysInput.value);
+      const ds=durationSpecified.value;
+      const rm=renewalMentioned.value;
+      const mn=numberOrNull(durMin.value);
+      const mx=numberOrNull(durMax.value);
+
+      const ss=startSpecified.value;
+      const sf=startFrom.value;
+      const st=startTo.value;
+      const sd=(startDescriptor.value || '').trim().toLowerCase();
+
+      // Apply filters
+      rows=rows.filter(r=>{
+        if(!withinDays(r.CrawlTime,days)) return false;
+
+        if(ds!=='any' && r.duration_specified!==ds) return false;
+        if(rm!=='any' && r.renewal_mentioned!==rm) return false;
+        if(mn!==null && r.duration_months<mn) return false;
+        if(mx!==null && r.duration_months>mx) return false;
+
+        if(ss!=='any' && r.start_specified!==ss) return false;
+
+        // Date range filter (only matches when start_iso is a valid date)
+        if((sf || st) && !withinDateRange(r.start_iso, sf, st)) return false;
+
+        // Descriptor keyword filter (case-insensitive substring)
+        if(sd && String(r.start_descriptor||'').toLowerCase().indexOf(sd)===-1) return false;
+
+        return true;
+      });
+
+      if(!rows.length){
+        emptyEl.style.display="block";
+        setStatus("No matches");
+        resultCount.textContent="0 jobs";
+        return;
+      }
+
+      // Render skeletons
       cardsEl.innerHTML=rows.map(r=>cardSkeleton(r.jobID)).join("");
       resultCount.textContent=`${rows.length} jobs`;
       setStatus("Fetching SEEK details…");
-      let cors=false;const resArr=[];let i=0;async function worker(){while(i<rows.length){const idx=i++;try{const j=await fetchSeekDetails(rows[idx].jobID);resArr[idx]={job:j,ok:true};await sleep(150);}catch(e){resArr[idx]={job:null,ok:false};cors=true;}}}
+
+      // Fetch SEEK details in parallel with throttling; handle CORS gracefully
+      let cors=false; const resArr=[]; let i=0;
+      async function worker(){
+        while(i<rows.length){
+          const idx=i++;
+          try{
+            const j=await fetchSeekDetails(rows[idx].jobID);
+            resArr[idx]={job:j,ok:true};
+            await sleep(150);
+          }catch(e){
+            resArr[idx]={job:null,ok:false};
+            cors=true;
+          }
+        }
+      }
       await Promise.all(Array.from({length:3},worker));
-      if(cors)corsHint.style.display="block";
-      cardsEl.innerHTML=rows.map((r,i)=>fmt(resArr[i]?.job,r,cors&&!resArr[i]?.ok)).join("");
+      if(cors) corsHint.style.display="block";
+
+      // Final render
+      cardsEl.innerHTML=rows.map((r,i)=>fmt(resArr[i]?.job,r,cors && !resArr[i]?.ok)).join("");
       setStatus("Done.");
     });
-    resetBtn.addEventListener('click',()=>{daysInput.value=7;durationSpecified.value='any';durMin.value='';durMax.value='';renewalMentioned.value='any';cardsEl.innerHTML='';emptyEl.style.display="none";resultCount.textContent='0 jobs';setStatus('Waiting for input…');corsHint.style.display='none';});
+
+    resetBtn.addEventListener('click',()=>{
+      daysInput.value=7;
+      durationSpecified.value='any';
+      durMin.value='';
+      durMax.value='';
+      renewalMentioned.value='any';
+
+      startSpecified.value='any';
+      startFrom.value='';
+      startTo.value='';
+      startDescriptor.value='';
+
+      cardsEl.innerHTML='';
+      emptyEl.style.display="none";
+      resultCount.textContent='0 jobs';
+      statusHint.textContent='Waiting for input…';
+      corsHint.style.display='none';
+    });
   </script>
 </body>
 </html>
