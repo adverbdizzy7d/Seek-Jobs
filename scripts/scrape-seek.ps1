@@ -24,7 +24,7 @@ In CI:
 [CmdletBinding()]
 param(
   [string]$OutputCsvPath = "data/seek_jobs.csv",
-  [int]$MaxPages = 25,
+  [int]$MaxPages = 10,
   [int]$PageSize = 22,
   [string]$Classification = "6281",      # ICT
   [string]$WorkType = "244",             # Contract/Temp
