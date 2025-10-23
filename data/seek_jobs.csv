@@ -649,3 +649,5 @@ CrawlTime,jobID,duration_specified,duration_months,renewal_mentioned,start_speci
 "2025-10-23T13:42:13.6914931Z","88072923","True","0","False","False","","not specified"
 "2025-10-23T13:42:19.1536939Z","88071432","True","6","True","False","","not specified"
 "2025-10-23T14:43:31.6701038Z","88074493","True","12","False","False","","not specified"
+"2025-10-23T15:36:25.3890105Z","88074794","True","24","False","False","","not specified"
+"2025-10-23T15:36:30.6938956Z","88074742","False","0","False","False","","not specified"
