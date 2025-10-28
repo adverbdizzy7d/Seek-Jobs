@@ -1014,3 +1014,4 @@ CrawlTime,jobID,duration_specified,duration_months,renewal_mentioned,start_speci
 "2025-10-28T11:27:21.1077589Z","88166307","False","0","False","False","","not specified"
 "2025-10-28T15:41:13.0526146Z","88168624","False","0","False","True","","not specified"
 "2025-10-28T17:38:57.5413691Z","88169763","True","1","False","True","","variable roster (starting times between 6am and 10:30am)"
+"2025-10-28T21:31:19.2267028Z","88170806","True","39","False","False","","not specified"
