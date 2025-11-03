@@ -1437,3 +1437,7 @@ CrawlTime,jobID,duration_specified,duration_months,renewal_mentioned,start_speci
 "2025-11-03T07:17:46.2614933Z","88275398","True","6","False","False","","not specified"
 "2025-11-03T07:17:51.9566730Z","88275160","True","0","True","False","","not specified"
 "2025-11-03T07:17:57.4898273Z","88274888","True","24","False","False","","not specified"
+"2025-11-03T08:24:40.7539778Z","88278000","False","0","False","True","","immediately"
+"2025-11-03T08:24:46.3877077Z","88277638","True","6","False","False","","not specified"
+"2025-11-03T08:24:51.9833077Z","88276676","True","6","False","False","","not specified"
+"2025-11-03T08:24:57.7068067Z","88276559","True","18","True","True","2023-12-01","Ideally before Christmas (2-4 weeks' notice fine)"
