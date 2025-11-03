@@ -1444,3 +1444,8 @@ CrawlTime,jobID,duration_specified,duration_months,renewal_mentioned,start_speci
 "2025-11-03T09:21:03.1772319Z","88279982","True","12","True","False","","not specified"
 "2025-11-03T09:21:08.7691781Z","88279802","False","0","False","False","","not specified"
 "2025-11-03T09:21:14.1001379Z","88278882","True","6","True","False","","not specified"
+"2025-11-03T10:20:31.7510657Z","88281525","True","6","True","True","2025-12-01","01 December 2025"
+"2025-11-03T10:20:37.2969986Z","88281267","True","0","True","False","","not specified"
+"2025-11-03T10:20:42.6729560Z","88280998","True","12","False","False","","not specified"
+"2025-11-03T10:20:48.2853864Z","88281074","True","12","False","False","","not specified"
+"2025-11-03T10:20:53.9362450Z","88280615","False","0","False","False","","not specified"
