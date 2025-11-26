@@ -3397,3 +3397,4 @@ CrawlTime,jobID,duration_specified,duration_months,renewal_mentioned,start_speci
 "2025-11-26T09:20:20.3005895Z","88778724","True","30","False","True","","ASAP"
 "2025-11-26T09:20:25.8601249Z","88778292","True","6","True","False","","not specified"
 "2025-11-26T09:20:31.3780232Z","88777530","True","24","False","False","","not specified"
+"2025-11-26T10:20:10.9304140Z","88779379","True","8","False","True","","Immediate start required"
