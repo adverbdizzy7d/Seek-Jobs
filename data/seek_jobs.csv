@@ -5275,3 +5275,5 @@ CrawlTime,jobID,duration_specified,duration_months,renewal_mentioned,start_speci
 "2026-01-16T23:17:48.8924853Z","89738856","True","6","False","False","","not specified"
 "2026-01-17T01:23:06.5322643Z","89752538","True","3","True","True","","within a 2 week notice period"
 "2026-01-17T01:23:17.8143043Z","89752464","True","2","True","True","","within a two week notice period"
+"2026-01-17T03:20:36.1562204Z","89753239","True","48","True","False","","not specified"
+"2026-01-17T03:20:41.4391480Z","89753190","True","48","True","False","","not specified"
