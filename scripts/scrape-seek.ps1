@@ -139,7 +139,7 @@ Job description:
 
   $uri = "https://generativelanguage.googleapis.com/v1beta/models/$ModelName`:generateContent"
   $headers = @{
-    "x-goog-api-key" = $ApiKey
+    "x-goog-api-key" = (($ApiKey -split ",") | Get-Random)
     "Content-Type"   = "application/json"
   }
 
