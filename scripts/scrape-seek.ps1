@@ -281,10 +281,10 @@ while ($page -le $MaxPages) {
     if (-not $existingIds.Contains($jid)) { $newJobs += $j }
   }
 
-  if ($newJobs.Count -eq 0) {
-    Write-Host "Page $page contains no new jobs. Stopping." -ForegroundColor Yellow
-    break
-  }
+//  if ($newJobs.Count -eq 0) {
+//    Write-Host "Page $page contains no new jobs. Stopping." -ForegroundColor Yellow
+//    break
+//  }
 
   foreach ($job in $newJobs) {
     $jid = [string]$job.id
