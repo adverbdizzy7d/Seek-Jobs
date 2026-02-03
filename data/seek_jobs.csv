@@ -6668,3 +6668,8 @@ CrawlTime,jobID,duration_specified,duration_months,renewal_mentioned,start_speci
 "2026-02-03T06:48:01.7359019Z","90099222","True","3","True","False","","not specified"
 "2026-02-03T06:48:30.4238159Z","90099118","True","6","False","False","","not specified"
 "2026-02-03T06:48:37.2900485Z","90099066","False","0","False","False","","not specified"
+"2026-02-03T07:40:54.1912754Z","90101877","True","27","True","False","","not specified"
+"2026-02-03T07:40:59.6754267Z","90100177","True","0","True","False","","not specified"
+"2026-02-03T07:41:10.2211644Z","90099974","True","6","True","True","","immediate consideration"
+"2026-02-03T07:41:15.4893893Z","90099204","False","0","False","True","","ASAP"
+"2026-02-03T07:41:22.5168325Z","90101636","True","12","False","False","","not specified"
