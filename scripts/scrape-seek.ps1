@@ -97,7 +97,7 @@ You are an information extractor.
 From the job description, determine:
 - duration_specified (boolean): true if a specific duration (e.g., "6 months", "a 12-month contract") or a clear end date (e.g., "fixed term until 2025-12-31") is stated; false if it only says temporary/contract/fixed-term without a concrete duration or end date.
 - duration_months (integer >= 0): the number of months. Use conversions: 1 year = 12 months; 4 weeks = 1 month; for weeks, round to a whole month. If only an end date is given without a known start date, set duration_months = 0.
-- renewal_mentioned (boolean): true if an explicit contract extension/renewal is mentioned (e.g., "extension possible", "option to renew"); false if only conversion to a permanent role is mentioned.
+- renewal_mentioned (boolean): true if an explicit contract extension/renewal or only initial duration is mentioned (e.g., "extension possible", "option to renew", "initial"); false if only conversion to a permanent role is mentioned.
 
 Also extract the start timing:
 - start_specified (boolean): true if a start is mentioned (e.g., a concrete date, "ASAP", "immediately", "start in January 2026", "start after notice period"); false if there is no mention of when the role starts.
