@@ -10859,3 +10859,6 @@ CrawlTime,jobID,duration_specified,duration_months,renewal_mentioned,start_speci
 "2026-03-21T04:03:50.0113367Z","91075773","True","6","False","True","2026-01-01","Winter 2026"
 "2026-03-21T04:03:55.1627736Z","91075768","True","6","False","True","2026-01-01","Winter 2026"
 "2026-03-21T04:04:00.8257705Z","91075734","False","0","False","False","","not specified"
+"2026-03-21T05:38:27.3804401Z","91076508","False","0","False","True","","Immediate to short notice availability"
+"2026-03-21T05:38:32.6893480Z","91076432","False","0","False","True","","immediately to 4 weeks"
+"2026-03-21T05:38:38.0283142Z","91076405","False","0","False","False","","not specified"
