@@ -30,6 +30,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           TARGET_EMAIL: ${{ secrets.TARGET_EMAIL }}
           MAILGUN_API_KEY: ${{ secrets.MAILGUN_API_KEY }}
+          MAILGUN_DOMAIN: ${{ secrets.MAILGUN_DOMAIN }}
         run: |
           if (-not (Test-Path "./scripts/scrape-seek.ps1")) { throw "scripts/scrape-seek.ps1 not found" }
           ./scripts/scrape-seek.ps1 -OutputCsvPath "data/seek_jobs.csv" 
