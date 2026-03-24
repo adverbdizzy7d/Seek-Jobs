@@ -213,6 +213,32 @@ function Get-SeekJobDetailsContent {
   return $resp.data.jobDetails.job.content
 }
 
+# --- Startup Test Email (Inline Debugging)
+if ($env:TARGET_EMAIL -and $env:MAILGUN_API_KEY -and $env:MAILGUN_DOMAIN) {
+  Write-Host "Sending startup test email..." -ForegroundColor Cyan
+  try {
+    $mailgunDomain = $env:MAILGUN_DOMAIN
+    $mailgunUri = "https://api.mailgun.net/v3/$mailgunDomain/messages"
+    $authBytes = [System.Text.Encoding]::ASCII.GetBytes("api:$($env:MAILGUN_API_KEY)")
+    $authBase64 = [Convert]::ToBase64String($authBytes)
+    $headers = @{ "Authorization" = "Basic $authBase64" }
+    
+    $bodyParams = @{
+        from    = "Seek Job Bot <postmaster@$mailgunDomain>"
+        to      = $env:TARGET_EMAIL
+        subject = "Seek Scraper Started"
+        text    = "The Seek job scraper has started successfully at $([DateTime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss')) UTC."
+    }
+    
+    $resp = Invoke-RestMethod -Uri $mailgunUri -Method POST -Headers $headers -Body $bodyParams
+    Write-Host "Test email sent successfully! Mailgun response: $($resp.message)" -ForegroundColor Green
+  } catch {
+    Write-Warning "Failed to send test email: $($_.Exception.Message)"
+    if ($_.ErrorDetails) { Write-Warning "Mailgun API detailed error: $($_.ErrorDetails.Message)" }
+  }
+}
+#END
+
 # --- Ensure CSV exists with header (and migrate if needed)
 $csvDir = Split-Path -Parent $OutputCsvPath
 if (-not [string]::IsNullOrWhiteSpace($csvDir)) {
