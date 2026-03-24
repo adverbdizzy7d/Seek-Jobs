@@ -218,7 +218,7 @@ if ($env:TARGET_EMAIL -and $env:MAILGUN_API_KEY -and $env:MAILGUN_DOMAIN) {
   Write-Host "Sending startup test email..." -ForegroundColor Cyan
   try {
     $mailgunDomain = $env:MAILGUN_DOMAIN
-    $mailgunUri = "https://api.mailgun.net/v3/$mailgunDomain/messages"
+    $mailgunUri = "https://api.eu.mailgun.net/v3/$mailgunDomain/messages"
     $authBytes = [System.Text.Encoding]::ASCII.GetBytes("api:$($env:MAILGUN_API_KEY)")
     $authBase64 = [Convert]::ToBase64String($authBytes)
     $headers = @{ "Authorization" = "Basic $authBase64" }
@@ -372,7 +372,7 @@ Job Link: https://www.seek.com.au/job/$jid
 "@
           try {
             $mailgunDomain = $env:MAILGUN_DOMAIN
-            $mailgunUri = "https://api.mailgun.net/v3/$mailgunDomain/messages"
+            $mailgunUri = "https://api.eu.mailgun.net/v3/$mailgunDomain/messages"
             
             # Setup Basic Authentication for Mailgun
             $authBytes = [System.Text.Encoding]::ASCII.GetBytes("api:$($env:MAILGUN_API_KEY)")
