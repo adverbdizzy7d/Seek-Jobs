@@ -333,17 +333,28 @@ while ($page -le $MaxPages) {
           Write-Host "Criteria met! Sending email for job $jid via Mailgun API..." -ForegroundColor Magenta
           
           $subject = "New SEEK Job Found: $($job.title)"
-          $emailText = @"
-A new matching job was found!
+          $emailHtml = @"
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; padding: 20px; border-radius: 8px;">
+                <h2 style="color: #0d3880; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; margin-top: 0;">New SEEK Job: $($job.title)</h2>
+                
+                <div style="background-color: #f5f8ff; border-left: 4px solid #0d3880; padding: 15px; margin-bottom: 20px; border-radius: 0 4px 4px 0;">
+                    <h3 style="margin-top: 0; color: #0d3880; font-size: 16px;">🤖 AI Extraction Results</h3>
+                    <ul style="margin-bottom: 0; padding-left: 20px; color: #333;">
+                        <li style="margin-bottom: 5px;"><strong>Duration:</strong> $durMonths months</li>
+                        <li style="margin-bottom: 5px;"><strong>Start Info:</strong> $($result.start_descriptor)</li>
+                        <li><strong>Renewal Mentioned:</strong> No</li>
+                    </ul>
+                </div>
 
-Title: $($job.title)
-Job ID: $jid
-Duration: $durMonths months
-Renewal mentioned: No
-Start info: $($result.start_descriptor)
+                <h3 style="color: #333; font-size: 16px;">📝 Job Snippet</h3>
+                <p style="color: #555; line-height: 1.5; font-size: 14px; background-color: #f9f9f9; padding: 10px; border-radius: 4px;"><i>"$snippet"</i></p>
 
-Job Link: https://www.seek.com.au/job/$jid
+                <div style="text-align: center; margin-top: 30px; margin-bottom: 10px;">
+                    <a href="https://www.seek.com.au/job/$jid" style="background-color: #2765cf; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block; font-size: 16px;">View Job on SEEK</a>
+                </div>
+            </div>
 "@
+
           try {
             $mailgunDomain = $env:MAILGUN_DOMAIN
             $mailgunUri = "https://api.eu.mailgun.net/v3/$mailgunDomain/messages"
@@ -361,7 +372,7 @@ Job Link: https://www.seek.com.au/job/$jid
                 from    = "Seek Job Bot <postmaster@$mailgunDomain>"
                 to      = $env:TARGET_EMAIL
                 subject = $subject
-                text    = $emailText
+                html    = $emailHtml
             }
             
             $response = Invoke-RestMethod -Uri $mailgunUri -Method POST -Headers $headers -Body $bodyParams
