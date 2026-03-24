@@ -35,8 +35,8 @@ param(
 if (-not $env:GEMINI_API_KEY -or [string]::IsNullOrWhiteSpace($env:GEMINI_API_KEY)) {
   throw "Environment variable GEMINI_API_KEY is not set. Provide it via GitHub Actions secret or your local env."
 }
-if (-not $env:TARGET_EMAIL -or -not $env:MAILGUN_API_KEY) {
-  Write-Warning "TARGET_EMAIL or MAILGUN_API_KEY is not set. Email notifications will be disabled."
+if (-not $env:TARGET_EMAIL -or -not $env:MAILGUN_API_KEY -or -not $env:MAILGUN_DOMAIN) {
+  Write-Warning "TARGET_EMAIL, MAILGUN_API_KEY, or MAILGUN_DOMAIN is not set. Email notifications will be disabled."
 }
 
 # --- Helpers
@@ -329,7 +329,7 @@ while ($page -le $MaxPages) {
 
       # --- E-Mail Notification Check via Mailgun API
       if ($durMonths -ge 1 -and $durMonths -le 3 -and -not $isRenewal) {
-        if ($env:TARGET_EMAIL -and $env:MAILGUN_API_KEY) {
+        if ($env:TARGET_EMAIL -and $env:MAILGUN_API_KEY -and $env:MAILGUN_DOMAIN) {
           Write-Host "Criteria met! Sending email for job $jid via Mailgun API..." -ForegroundColor Magenta
           
           $subject = "New SEEK Job Found: $($job.title)"
@@ -345,7 +345,7 @@ Start info: $($result.start_descriptor)
 Job Link: https://www.seek.com.au/job/$jid
 "@
           try {
-            $mailgunDomain = "sandbox234c835398c44a87be58dc5d77e7a51b.mailgun.org"
+            $mailgunDomain = $env:MAILGUN_DOMAIN
             $mailgunUri = "https://api.mailgun.net/v3/$mailgunDomain/messages"
             
             # Setup Basic Authentication for Mailgun
@@ -358,7 +358,7 @@ Job Link: https://www.seek.com.au/job/$jid
             
             # Form Data equivalent to -F in curl
             $bodyParams = @{
-                from    = "Mailgun Sandbox <postmaster@$mailgunDomain>"
+                from    = "Seek Job Bot <postmaster@$mailgunDomain>"
                 to      = $env:TARGET_EMAIL
                 subject = $subject
                 text    = $emailText
