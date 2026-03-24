@@ -28,6 +28,11 @@ jobs:
         shell: pwsh
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TARGET_EMAIL: ${{ secrets.TARGET_EMAIL }}
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
         run: |
           if (-not (Test-Path "./scripts/scrape-seek.ps1")) { throw "scripts/scrape-seek.ps1 not found" }
           ./scripts/scrape-seek.ps1 -OutputCsvPath "data/seek_jobs.csv" 
