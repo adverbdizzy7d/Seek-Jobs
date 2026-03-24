@@ -2,7 +2,7 @@
 Scrapes SEEK API pages for ICT Contract jobs, stops when a page contains no new jobs
 (compared to a local CSV), fetches job details (GraphQL), sends the description
 to Google Gemini (Structured Output) to extract contract duration signals AND start timing,
-and appends results to CSV.
+and appends results to CSV. Includes email notification for specific criteria and 30-day CSV cleanup.
 
 CSV columns:
 - CrawlTime          (UTC ISO-8601)
@@ -13,12 +13,6 @@ CSV columns:
 - start_specified    (bool)
 - start_iso          (string, YYYY-MM-DD or empty)
 - start_descriptor   (string)
-
-Usage (locally):
-  pwsh ./scripts/scrape-seek.ps1 -OutputCsvPath "data/seek_jobs.csv" -MaxPages 50
-
-In CI:
-  The script reads the API key from $env:GEMINI_API_KEY.
 #>
 
 [CmdletBinding()]
@@ -40,6 +34,9 @@ param(
 # --- Safety checks
 if (-not $env:GEMINI_API_KEY -or [string]::IsNullOrWhiteSpace($env:GEMINI_API_KEY)) {
   throw "Environment variable GEMINI_API_KEY is not set. Provide it via GitHub Actions secret or your local env."
+}
+if (-not $env:TARGET_EMAIL) {
+  Write-Warning "TARGET_EMAIL is not set. Email notifications will be disabled."
 }
 
 # --- Helpers
@@ -81,7 +78,7 @@ function Convert-HtmlToPlainText {
   return $Html # keep HTML, Gemini can cope
 }
 
-# --- Gemini structured extraction (extended with start timing)
+# --- Gemini structured extraction
 function Invoke-GeminiJobContractExtraction {
   [CmdletBinding()]
   param(
@@ -232,23 +229,53 @@ if (-not (Test-Path -LiteralPath $OutputCsvPath)) {
   if ($firstLine -ne $desiredHeader) {
     try {
       $existingRows = Import-Csv -LiteralPath $OutputCsvPath
-      # Add missing columns with defaults
       foreach ($r in $existingRows) {
         if (-not $r.PSObject.Properties.Name.Contains("start_specified")) { $r | Add-Member -NotePropertyName start_specified -NotePropertyValue "" }
         if (-not $r.PSObject.Properties.Name.Contains("start_iso"))       { $r | Add-Member -NotePropertyName start_iso       -NotePropertyValue "" }
         if (-not $r.PSObject.Properties.Name.Contains("start_descriptor")){ $r | Add-Member -NotePropertyName start_descriptor-NotePropertyValue "" }
       }
-      # Re-export with new header
       $existingRows | Select-Object CrawlTime,jobID,duration_specified,duration_months,renewal_mentioned,start_specified,start_iso,start_descriptor `
         | Export-Csv -LiteralPath $OutputCsvPath -NoTypeInformation -Encoding utf8
-      # Ensure header is exact (some PS versions add BOM/order)
+      
       $tmp = Get-Content -LiteralPath $OutputCsvPath
       $tmp[0] = $desiredHeader
       Set-Content -LiteralPath $OutputCsvPath -Value $tmp -Encoding utf8
-      Write-Host "Migrated CSV header to include start_* columns." -ForegroundColor Green
     } catch {
       Write-Warning "CSV migration failed: $($_.Exception.Message)"
     }
+  }
+}
+
+# --- Cleanup old jobs (> 30 days) from CSV
+if (Test-Path -LiteralPath $OutputCsvPath) {
+  try {
+    $thresholdDate = [DateTime]::UtcNow.AddDays(-30)
+    $allRows = Import-Csv -LiteralPath $OutputCsvPath
+    $keptRows = @()
+    $removedCount = 0
+
+    foreach ($row in $allRows) {
+      $crawlTime = [datetime]$row.CrawlTime
+      if ($crawlTime -ge $thresholdDate) {
+        $keptRows += $row
+      } else {
+        $removedCount++
+      }
+    }
+
+    if ($removedCount -gt 0) {
+      $keptRows | Select-Object CrawlTime,jobID,duration_specified,duration_months,renewal_mentioned,start_specified,start_iso,start_descriptor `
+        | Export-Csv -LiteralPath $OutputCsvPath -NoTypeInformation -Encoding utf8
+      
+      # Fix headers again due to Export-Csv formatting
+      $tmp = Get-Content -LiteralPath $OutputCsvPath
+      $tmp[0] = $desiredHeader
+      Set-Content -LiteralPath $OutputCsvPath -Value $tmp -Encoding utf8
+
+      Write-Host "Removed $removedCount old jobs (> 30 days) from CSV." -ForegroundColor Yellow
+    }
+  } catch {
+    Write-Warning "Failed to cleanup old jobs: $($_.Exception.Message)"
   }
 }
 
@@ -274,17 +301,11 @@ while ($page -le $MaxPages) {
     break
   }
 
-  # Filter only truly new jobs by ID
   $newJobs = @()
   foreach ($j in $jobs) {
     $jid = [string]$j.id
     if (-not $existingIds.Contains($jid)) { $newJobs += $j }
   }
-
-#  if ($newJobs.Count -eq 0) {
-#    Write-Host "Page $page contains no new jobs. Stopping." -ForegroundColor Yellow
-#    break
-#  }
 
   foreach ($job in $newJobs) {
     $jid = [string]$job.id
@@ -303,18 +324,53 @@ while ($page -le $MaxPages) {
       $result = Invoke-GeminiJobContractExtraction -ApiKey $env:GEMINI_API_KEY -JobText $text -ModelName $GeminiModel
       Start-Sleep -Milliseconds $DelayMsAfterGeminiRequest
 
+      $durMonths = [int]$result.duration_months
+      $isRenewal = [bool]$result.renewal_mentioned
+
+      # --- E-Mail Notification Check
+      if ($durMonths -ge 1 -and $durMonths -le 3 -and -not $isRenewal) {
+        if ($env:TARGET_EMAIL -and $env:SMTP_SERVER) {
+          Write-Host "Kriterien erfüllt! Sende E-Mail für Job $jid..." -ForegroundColor Magenta
+          
+          $subject = "Neuer SEEK Job gefunden: $($job.title)"
+          $body = @"
+Ein neuer passender Job wurde gefunden!
+
+Titel: $($job.title)
+Job-ID: $jid
+Dauer: $durMonths Monate
+Verlängerung erwähnt: Nein
+Start-Info: $($result.start_descriptor)
+
+Link zum Job: https://www.seek.com.au/job/$jid
+"@
+          try {
+            $smtpClient = New-Object System.Net.Mail.SmtpClient($env:SMTP_SERVER, $env:SMTP_PORT)
+            $smtpClient.EnableSsl = $true
+            $smtpClient.Credentials = New-Object System.Net.NetworkCredential($env:SMTP_USERNAME, $env:SMTP_PASSWORD)
+            
+            # WICHTIG: Die From-Adresse ggf. an deinen SMTP-Anbieter anpassen
+            $mailMessage = New-Object System.Net.Mail.MailMessage("dein-bot@deine-domain.com", $env:TARGET_EMAIL, $subject, $body)
+            $smtpClient.Send($mailMessage)
+            Write-Host "E-Mail erfolgreich gesendet." -ForegroundColor Green
+          } catch {
+            Write-Warning "Fehler beim Senden der E-Mail für Job $jid : $($_.Exception.Message)"
+          }
+        }
+      }
+
+      # --- Save to CSV
       $row = [PSCustomObject]@{
         CrawlTime          = [DateTime]::UtcNow.ToString("o")
         jobID              = $jid
         duration_specified = $result.duration_specified
-        duration_months    = [int]$result.duration_months
-        renewal_mentioned  = $result.renewal_mentioned
+        duration_months    = $durMonths
+        renewal_mentioned  = $isRenewal
         start_specified    = $result.start_specified
         start_iso          = [string]$result.start_iso
         start_descriptor   = [string]$result.start_descriptor
       }
 
-      # Ensure column order matches CSV
       $row | Select-Object CrawlTime,jobID,duration_specified,duration_months,renewal_mentioned,start_specified,start_iso,start_descriptor `
           | Export-Csv -LiteralPath $OutputCsvPath -NoTypeInformation -Append -Encoding utf8
 
