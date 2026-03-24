@@ -2,7 +2,7 @@
 Scrapes SEEK API pages for ICT Contract jobs, stops when a page contains no new jobs
 (compared to a local CSV), fetches job details (GraphQL), sends the description
 to Google Gemini (Structured Output) to extract contract duration signals AND start timing,
-and appends results to CSV. Includes email notification for specific criteria and 30-day CSV cleanup.
+and appends results to CSV. Includes email notification via Mailgun API for specific criteria and 30-day CSV cleanup.
 
 CSV columns:
 - CrawlTime          (UTC ISO-8601)
@@ -35,8 +35,8 @@ param(
 if (-not $env:GEMINI_API_KEY -or [string]::IsNullOrWhiteSpace($env:GEMINI_API_KEY)) {
   throw "Environment variable GEMINI_API_KEY is not set. Provide it via GitHub Actions secret or your local env."
 }
-if (-not $env:TARGET_EMAIL) {
-  Write-Warning "TARGET_EMAIL is not set. Email notifications will be disabled."
+if (-not $env:TARGET_EMAIL -or -not $env:MAILGUN_API_KEY) {
+  Write-Warning "TARGET_EMAIL or MAILGUN_API_KEY is not set. Email notifications will be disabled."
 }
 
 # --- Helpers
@@ -327,13 +327,13 @@ while ($page -le $MaxPages) {
       $durMonths = [int]$result.duration_months
       $isRenewal = [bool]$result.renewal_mentioned
 
-      # --- E-Mail Notification Check
+      # --- E-Mail Notification Check via Mailgun API
       if ($durMonths -ge 1 -and $durMonths -le 3 -and -not $isRenewal) {
-        if ($env:TARGET_EMAIL -and $env:SMTP_SERVER) {
-          Write-Host "Criteria met! Sending email for job $jid..." -ForegroundColor Magenta
+        if ($env:TARGET_EMAIL -and $env:MAILGUN_API_KEY) {
+          Write-Host "Criteria met! Sending email for job $jid via Mailgun API..." -ForegroundColor Magenta
           
           $subject = "New SEEK Job Found: $($job.title)"
-          $body = @"
+          $emailText = @"
 A new matching job was found!
 
 Title: $($job.title)
@@ -345,23 +345,31 @@ Start info: $($result.start_descriptor)
 Job Link: https://www.seek.com.au/job/$jid
 "@
           try {
-            # Force TLS 1.2 for secure connections
-            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-
-            $smtpClient = New-Object System.Net.Mail.SmtpClient($env:SMTP_SERVER, $env:SMTP_PORT)
-            $smtpClient.EnableSsl = $true
-            $smtpClient.Credentials = New-Object System.Net.NetworkCredential($env:SMTP_USERNAME, $env:SMTP_PASSWORD)
+            $mailgunDomain = "sandbox234c835398c44a87be58dc5d77e7a51b.mailgun.org"
+            $mailgunUri = "https://api.mailgun.net/v3/$mailgunDomain/messages"
             
-            # MANDATORY for Mailgun Sandbox: From address must match the sandbox domain
-            $fromAddress = "postmaster@sandbox234c835398c44a87be58dc5d77e7a51b.mailgun.org"
+            # Setup Basic Authentication for Mailgun
+            $authBytes = [System.Text.Encoding]::ASCII.GetBytes("api:$($env:MAILGUN_API_KEY)")
+            $authBase64 = [Convert]::ToBase64String($authBytes)
             
-            $mailMessage = New-Object System.Net.Mail.MailMessage($fromAddress, $env:TARGET_EMAIL, $subject, $body)
-            $smtpClient.Send($mailMessage)
-            Write-Host "Email successfully sent." -ForegroundColor Green
+            $headers = @{
+                "Authorization" = "Basic $authBase64"
+            }
+            
+            # Form Data equivalent to -F in curl
+            $bodyParams = @{
+                from    = "Mailgun Sandbox <postmaster@$mailgunDomain>"
+                to      = $env:TARGET_EMAIL
+                subject = $subject
+                text    = $emailText
+            }
+            
+            $response = Invoke-RestMethod -Uri $mailgunUri -Method POST -Headers $headers -Body $bodyParams
+            Write-Host "Email successfully sent! Mailgun response: $($response.message)" -ForegroundColor Green
           } catch {
-            Write-Warning "Error sending email for job $jid : $($_.Exception.Message)"
-            if ($_.Exception.InnerException) {
-                Write-Warning "Detailed error (Server response): $($_.Exception.InnerException.Message)"
+            Write-Warning "Error sending email for job $jid via Mailgun API: $($_.Exception.Message)"
+            if ($_.ErrorDetails) {
+                Write-Warning "Mailgun API detailed error: $($_.ErrorDetails.Message)"
             }
           }
         }
