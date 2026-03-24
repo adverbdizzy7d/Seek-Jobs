@@ -330,31 +330,39 @@ while ($page -le $MaxPages) {
       # --- E-Mail Notification Check
       if ($durMonths -ge 1 -and $durMonths -le 3 -and -not $isRenewal) {
         if ($env:TARGET_EMAIL -and $env:SMTP_SERVER) {
-          Write-Host "Kriterien erfüllt! Sende E-Mail für Job $jid..." -ForegroundColor Magenta
+          Write-Host "Criteria met! Sending email for job $jid..." -ForegroundColor Magenta
           
-          $subject = "Neuer SEEK Job gefunden: $($job.title)"
+          $subject = "New SEEK Job Found: $($job.title)"
           $body = @"
-Ein neuer passender Job wurde gefunden!
+A new matching job was found!
 
-Titel: $($job.title)
-Job-ID: $jid
-Dauer: $durMonths Monate
-Verlängerung erwähnt: Nein
-Start-Info: $($result.start_descriptor)
+Title: $($job.title)
+Job ID: $jid
+Duration: $durMonths months
+Renewal mentioned: No
+Start info: $($result.start_descriptor)
 
-Link zum Job: https://www.seek.com.au/job/$jid
+Job Link: https://www.seek.com.au/job/$jid
 "@
           try {
+            # Force TLS 1.2 for secure connections
+            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
             $smtpClient = New-Object System.Net.Mail.SmtpClient($env:SMTP_SERVER, $env:SMTP_PORT)
             $smtpClient.EnableSsl = $true
             $smtpClient.Credentials = New-Object System.Net.NetworkCredential($env:SMTP_USERNAME, $env:SMTP_PASSWORD)
             
-            # WICHTIG: Die From-Adresse ggf. an deinen SMTP-Anbieter anpassen
-            $mailMessage = New-Object System.Net.Mail.MailMessage("dein-bot@deine-domain.com", $env:TARGET_EMAIL, $subject, $body)
+            # MANDATORY for Mailgun Sandbox: From address must match the sandbox domain
+            $fromAddress = "postmaster@sandbox234c835398c44a87be58dc5d77e7a51b.mailgun.org"
+            
+            $mailMessage = New-Object System.Net.Mail.MailMessage($fromAddress, $env:TARGET_EMAIL, $subject, $body)
             $smtpClient.Send($mailMessage)
-            Write-Host "E-Mail erfolgreich gesendet." -ForegroundColor Green
+            Write-Host "Email successfully sent." -ForegroundColor Green
           } catch {
-            Write-Warning "Fehler beim Senden der E-Mail für Job $jid : $($_.Exception.Message)"
+            Write-Warning "Error sending email for job $jid : $($_.Exception.Message)"
+            if ($_.Exception.InnerException) {
+                Write-Warning "Detailed error (Server response): $($_.Exception.InnerException.Message)"
+            }
           }
         }
       }
