@@ -328,7 +328,7 @@ while ($page -le $MaxPages) {
       $isRenewal = [bool]$result.renewal_mentioned
 
       # --- E-Mail Notification Check via Mailgun API
-      if ($durMonths -ge 1 -and $durMonths -le 3 -and -not $isRenewal) {
+      if ($durMonths -ge 1 -and $durMonths -le 3) {
         if ($env:TARGET_EMAIL -and $env:MAILGUN_API_KEY -and $env:MAILGUN_DOMAIN) {
           Write-Host "Criteria met! Sending email for job $jid via Mailgun API..." -ForegroundColor Magenta
           
@@ -342,7 +342,7 @@ while ($page -le $MaxPages) {
                     <ul style="margin-bottom: 0; padding-left: 20px; color: #333;">
                         <li style="margin-bottom: 5px;"><strong>Duration:</strong> $durMonths months</li>
                         <li style="margin-bottom: 5px;"><strong>Start Info:</strong> $($result.start_descriptor)</li>
-                        <li><strong>Renewal Mentioned:</strong> No</li>
+                        <li><strong>Renewal Mentioned:</strong> $isRenewal </li>
                     </ul>
                 </div>
 
