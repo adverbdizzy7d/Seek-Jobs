@@ -1503,3 +1503,4 @@ CrawlTime,jobID,duration_specified,duration_months,renewal_mentioned,start_speci
 "2026-04-21T20:53:30.0567040Z","91638745","False","0","True","True","","Immediate or notice period"
 "2026-04-21T20:53:49.8375931Z","91636728","True","9","True","False","","not specified"
 "2026-04-21T20:54:45.9529944Z","91633782","True","0","False","True","","from day one"
+"2026-04-21T21:43:20.5830441Z","91649438","True","12","True","False","","not specified"
