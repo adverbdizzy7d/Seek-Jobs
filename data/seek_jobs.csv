@@ -1338,3 +1338,6 @@ CrawlTime,jobID,duration_specified,duration_months,renewal_mentioned,start_speci
 "2026-05-14T11:57:27.0320503Z","92099355","False","0","False","False","","not specified"
 "2026-05-14T11:58:21.8654710Z","92088909","True","12","True","True","2026-07-01","1 July 2026"
 "2026-05-14T11:58:33.8174326Z","92088866","True","12","True","False","","not specified"
+"2026-05-14T14:04:40.3915436Z","92114611","False","0","False","False","","not specified"
+"2026-05-14T14:07:13.1440719Z","92110271","True","7","True","True","","Immediately (by early June)"
+"2026-05-14T14:10:43.9980969Z","92095534","True","12","True","True","","Immediate interview process underway"
