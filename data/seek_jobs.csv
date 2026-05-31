@@ -1241,3 +1241,4 @@ CrawlTime,jobID,duration_specified,duration_months,renewal_mentioned,start_speci
 "2026-05-31T21:01:37.5892047Z","92365516","True","12","True","False","","not specified"
 "2026-05-31T21:01:56.1961282Z","92364179","True","12","False","False","","not specified"
 "2026-05-31T22:00:52.1950336Z","92404483","True","12","False","False","","not specified"
+"2026-05-31T23:08:53.8426814Z","92411958","False","0","False","True","","short notice period"
