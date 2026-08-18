@@ -1325,3 +1325,4 @@ CrawlTime,jobID,duration_specified,duration_months,renewal_mentioned,start_speci
 "2026-08-18T02:55:27.0536457Z","94021944","True","31","True","True","2024-08-01","ASAP"
 "2026-08-18T02:55:46.7686033Z","94019981","True","12","True","False","","not specified"
 "2026-08-18T02:56:23.3898990Z","94017672","True","36","False","False","","not specified"
+"2026-08-18T03:42:59.9267833Z","94028623","False","0","False","False","","not specified"
