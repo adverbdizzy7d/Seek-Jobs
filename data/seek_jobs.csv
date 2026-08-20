@@ -1370,3 +1370,5 @@ CrawlTime,jobID,duration_specified,duration_months,renewal_mentioned,start_speci
 "2026-08-20T02:56:21.9702147Z","94088020","True","12","True","False","","not specified"
 "2026-08-20T02:57:50.8018763Z","94077356","True","1","False","True","2020-08-24","week beginning Monday 24 August"
 "2026-08-20T02:58:01.0575160Z","94076880","True","1","False","True","2020-08-24","week beginning Monday 24 August"
+"2026-08-20T03:48:51.2212608Z","94071771","True","6","False","False","","not specified"
+"2026-08-20T03:49:29.4398076Z","94068483","True","1","False","True","2026-08-24","24 August 2026"
