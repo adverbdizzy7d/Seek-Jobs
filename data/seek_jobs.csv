@@ -1,12 +1,4 @@
 CrawlTime,jobID,duration_specified,duration_months,renewal_mentioned,start_specified,start_iso,start_descriptor
-"2026-09-03T22:16:02.3412816Z","94394335","False","0","False","False","","not specified"
-"2026-09-03T22:23:57.8179708Z","94361415","False","0","False","False","","not specified"
-"2026-09-03T22:26:24.3572160Z","94350414","False","0","False","False","","not specified"
-"2026-09-04T00:46:05.4543474Z","94395702","False","0","False","False","","not specified"
-"2026-09-04T00:49:00.8283187Z","94390053","True","7","False","False","","not specified"
-"2026-09-04T00:49:19.2113723Z","94389267","True","12","True","False","","not specified"
-"2026-09-04T00:49:42.5260912Z","94389028","False","0","False","False","","not specified"
-"2026-09-04T00:50:01.0094581Z","94387263","True","12","False","False","","not specified"
 "2026-09-04T05:28:34.2359976Z","94414177","True","12","True","True","","immediately or within 3 to 4 weeks' notice maximum"
 "2026-09-04T10:32:32.9282007Z","94427521","True","12","True","False","","not specified"
 "2026-09-04T10:34:42.1537432Z","94421554","True","8","True","False","","not specified"
@@ -911,3 +903,5 @@ CrawlTime,jobID,duration_specified,duration_months,renewal_mentioned,start_speci
 "2026-10-03T22:06:04.9308919Z","95026584","False","0","False","True","","Immediate start preferred"
 "2026-10-03T22:07:26.1202285Z","95022088","True","16","True","True","","immediately"
 "2026-10-03T22:09:41.2230135Z","95012281","True","12","True","False","","not specified"
+"2026-10-04T02:22:21.6993037Z","95031998","True","6","True","False","","not specified"
+"2026-10-04T02:23:11.6212203Z","95024672","True","6","False","False","","not specified"
