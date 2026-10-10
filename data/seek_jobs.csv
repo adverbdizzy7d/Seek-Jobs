@@ -1,7 +1,4 @@
 CrawlTime,jobID,duration_specified,duration_months,renewal_mentioned,start_specified,start_iso,start_descriptor
-"2026-09-10T05:33:44.9698544Z","94545390","True","9","False","False","","not specified"
-"2026-09-10T05:34:03.4642233Z","94544803","True","12","True","True","2026-10-19","Monday, 19 October 2026"
-"2026-09-10T05:34:36.0245331Z","94543605","False","0","False","False","","not specified"
 "2026-09-10T10:33:21.4088373Z","94476310","False","0","False","False","","not specified"
 "2026-09-10T10:34:26.5819433Z","94548768","True","3","True","False","","not specified"
 "2026-09-10T10:37:07.5895716Z","94540981","True","12","False","True","","Onsite for the first 6 weeks, then hybrid flexible working may be considered"
@@ -853,3 +850,10 @@ CrawlTime,jobID,duration_specified,duration_months,renewal_mentioned,start_speci
 "2026-10-09T21:35:23.2701260Z","95154448","True","12","True","False","","not specified"
 "2026-10-10T01:29:50.8544905Z","95180645","True","9","False","False","","not specified"
 "2026-10-10T01:32:03.0121753Z","95167043","True","9","False","True","2026-10-31","31 October 2026"
+"2026-10-10T08:05:32.8594819Z","95169374","True","0","True","True","2027-05-01","May 2027"
+"2026-10-10T08:05:38.2932217Z","95168632","True","12","False","False","","not specified"
+"2026-10-10T08:09:23.7079387Z","95158741","True","12","True","False","","not specified"
+"2026-10-10T08:09:56.0307276Z","95156405","True","6","True","False","","not specified"
+"2026-10-10T08:11:12.2996493Z","95154312","True","6","False","False","","not specified"
+"2026-10-10T08:11:40.0336060Z","95153342","True","24","False","False","","not specified"
+"2026-10-10T08:17:02.7425453Z","95128663","False","0","False","False","","not specified"
