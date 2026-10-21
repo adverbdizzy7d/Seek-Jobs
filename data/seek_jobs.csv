@@ -1,7 +1,4 @@
 CrawlTime,jobID,duration_specified,duration_months,renewal_mentioned,start_specified,start_iso,start_descriptor
-"2026-09-21T05:54:50.2994655Z","94759935","False","0","False","False","","not specified"
-"2026-09-21T05:59:41.0188080Z","94717193","True","6","True","False","","not specified"
-"2026-09-21T06:00:46.4052536Z","94713940","True","9","True","True","","ASAP"
 "2026-09-21T11:57:24.5307636Z","94771683","True","12","True","False","","not specified"
 "2026-09-21T11:57:38.8698542Z","94771518","True","6","False","False","","not specified"
 "2026-09-21T11:59:11.3551453Z","94768510","False","0","False","False","","not specified"
@@ -828,3 +825,8 @@ CrawlTime,jobID,duration_specified,duration_months,renewal_mentioned,start_speci
 "2026-10-21T01:14:56.1422548Z","95393924","False","0","False","False","","not specified"
 "2026-10-21T01:15:06.3880542Z","95393684","True","36","False","True","","immediate start"
 "2026-10-21T01:25:48.8936070Z","95345959","True","12","False","False","","not specified"
+"2026-10-21T07:05:29.2687735Z","95392458","False","0","False","False","","not specified"
+"2026-10-21T07:05:43.1650196Z","95391946","True","12","True","False","","not specified"
+"2026-10-21T07:08:58.1327777Z","95376386","True","12","False","False","","not specified"
+"2026-10-21T07:10:43.4193797Z","95368545","False","0","False","False","","not specified"
+"2026-10-21T07:12:54.3684957Z","95362520","True","12","True","False","","not specified"
