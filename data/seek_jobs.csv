@@ -846,3 +846,6 @@ CrawlTime,jobID,duration_specified,duration_months,renewal_mentioned,start_speci
 "2026-10-25T21:23:49.8084212Z","95479940","True","6","True","False","","not specified"
 "2026-10-25T21:23:59.2730156Z","95479125","True","12","True","True","","immediate availability"
 "2026-10-25T21:24:09.8180372Z","95474422","False","0","False","False","","not specified"
+"2026-10-25T23:49:49.6657884Z","95451634","True","12","True","True","2026-12-07","7th December 2026"
+"2026-10-25T23:52:55.4552471Z","95430318","True","6","True","False","","not specified"
+"2026-10-25T23:53:22.7109719Z","95424208","True","0","True","True","","early starts 7am every morning"
